@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "ClassQuill API",
+  "name": "ClassQuill",
   "theme": "mint",
   "logo": {
     "light": "/logo/light.svg",
@@ -21,15 +21,66 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Get API Key",
-      "href": "https://app.classquill.com/org/settings"
+      "label": "Sign in",
+      "href": "https://app.classquill.com"
     }
   },
   "navigation": {
-    "pages": [
+    "tabs": [
       {
-        "group": "Getting Started",
-        "pages": ["introduction", "authentication", "quickstart"]
+        "tab": "Help Center",
+        "pages": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "guides/overview",
+              "guides/org-setup",
+              "guides/invite-tutors",
+              "guides/add-students",
+              "guides/set-availability",
+              "guides/how-parents-book"
+            ]
+          },
+          {
+            "group": "Scheduling",
+            "pages": [
+              "guides/scheduling/reschedule-cancel",
+              "guides/scheduling/session-reminders"
+            ]
+          },
+          {
+            "group": "Billing",
+            "pages": [
+              "guides/billing/invoices",
+              "guides/billing/online-payments",
+              "guides/billing/transaction-history"
+            ]
+          },
+          {
+            "group": "Student Portal",
+            "pages": [
+              "guides/student-portal/what-parents-students-see",
+              "guides/student-portal/progress-reports"
+            ]
+          },
+          {
+            "group": "AI Features",
+            "pages": [
+              "guides/ai/auto-grading",
+              "guides/ai/practice-questions",
+              "guides/ai/ai-study-assistant"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "pages": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "authentication", "quickstart"]
+          }
+        ]
       }
     ]
   },

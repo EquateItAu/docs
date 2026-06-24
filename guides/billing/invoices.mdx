@@ -1,0 +1,64 @@
+---
+title: "How invoices are generated"
+description: "ClassQuill automatically creates invoices when sessions are completed. Here's how the billing cycle works."
+---
+
+## Automatic invoice generation
+
+When a session is marked as **completed**, ClassQuill automatically generates an invoice and sends it to the parent (or directly to the student if no parent is linked). No manual action required from tutors or admins.
+
+The invoice includes:
+- Session date, time, and duration
+- Tutor name
+- Rate per hour and total amount
+- Payment due date (set by your org)
+- Payment options (bank transfer, or card if Stripe is connected)
+
+---
+
+## Manually generating an invoice
+
+Org admins can also generate invoices outside the automatic cycle — for example, for a bulk session package or a custom charge.
+
+1. Go to **Payments → Invoices** in the org sidebar.
+2. Click **New invoice**.
+3. Select the student and enter the line items.
+4. Set a due date and click **Send**.
+
+---
+
+## Invoice statuses
+
+| Status | Meaning |
+|---|---|
+| **Pending** | Sent, awaiting payment |
+| **Paid** | Payment confirmed (card or manually marked) |
+| **Overdue** | Past due date, payment not received |
+| **Voided** | Cancelled (e.g. session was cancelled after invoicing) |
+
+---
+
+## Marking an invoice as paid manually
+
+If a parent pays by bank transfer or cash:
+
+1. Go to **Payments → Invoices**.
+2. Find the invoice and click it.
+3. Select **Mark as paid** and enter the payment method and date.
+
+<Info>
+  Card payments processed via Stripe are marked as paid automatically.
+</Info>
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Set up online payments" icon="credit-card" href="/guides/billing/online-payments">
+    Connect Stripe so parents can pay by card.
+  </Card>
+  <Card title="View transaction history" icon="list" href="/guides/billing/transaction-history">
+    Find and filter all past payments.
+  </Card>
+</CardGroup>

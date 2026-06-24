@@ -1,0 +1,53 @@
+---
+title: "Setting up online payments"
+description: "Connect Stripe so parents can pay invoices by card directly through ClassQuill."
+---
+
+## Overview
+
+ClassQuill uses **Stripe** to process card payments. Once you connect your Stripe account, parents can pay invoices online — no manual bank transfer coordination needed.
+
+Stripe's standard processing fee applies. ClassQuill does not add a platform surcharge on top.
+
+---
+
+## Connecting Stripe
+
+You must be an **Org Owner** or **Org Admin** to connect Stripe.
+
+1. Go to **Settings → Payments** in the org sidebar.
+2. Click **Connect Stripe**.
+3. You'll be redirected to Stripe's onboarding flow. Complete the steps to verify your business identity and bank account.
+4. Once approved, you'll be redirected back to ClassQuill and Stripe will show as **Connected**.
+
+<Info>
+  Stripe's identity verification typically takes a few minutes but can take up to 2 business days for new accounts.
+</Info>
+
+---
+
+## What happens after connecting
+
+- All new invoices will include a **Pay by card** button.
+- Parents receive an email with a secure payment link.
+- Payments are deposited to your bank account on Stripe's payout schedule (typically 2 business days).
+- Paid invoices are automatically marked as **Paid** in ClassQuill.
+
+---
+
+## Accepting cash and bank transfers
+
+Stripe is optional. Parents can always pay by bank transfer or cash — mark those payments manually. See [How invoices are generated](/guides/billing/invoices) for details.
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="How invoices are generated" icon="file-invoice" href="/guides/billing/invoices">
+    When invoices are created and how to manage them.
+  </Card>
+  <Card title="View transaction history" icon="list" href="/guides/billing/transaction-history">
+    Find all past payments.
+  </Card>
+</CardGroup>
