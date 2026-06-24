@@ -1,72 +1,50 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "name": "ClassQuill API",
   "theme": "mint",
-  "name": "Mintlify Starter Kit",
-  "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
-  },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
   },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#255a80",
+    "light": "#88c1fb",
+    "dark": "#1a3f5c"
+  },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Dashboard",
+        "href": "https://app.classquill.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Get API Key",
+      "href": "https://app.classquill.com/org/settings"
     }
   },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
+  "navigation": {
+    "pages": [
+      {
+        "group": "Getting Started",
+        "pages": ["introduction", "authentication", "quickstart"]
+      }
     ]
+  },
+  "openapi": "/openapi.yaml",
+  "api": {
+    "baseUrl": "https://api.classquill.com",
+    "auth": {
+      "method": "key",
+      "name": "Authorization",
+      "inputPrefix": "Token token="
+    }
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "website": "https://classquill.com"
     }
   }
 }

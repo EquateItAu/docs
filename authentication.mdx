@@ -1,0 +1,85 @@
+---
+title: "Authentication"
+description: "All API requests require an API key. Keys are scoped to your organisation and never expire unless you set an expiry date."
+---
+
+## Getting an API key
+
+API keys are managed in your ClassQuill organisation settings:
+
+1. Log in to ClassQuill as an **org owner** or **admin**
+2. Go to **Settings → Integrations → API Keys**
+3. Click **Create new key**, give it a name (e.g. "Xero integration"), and optionally set an expiry date
+4. Copy the key — **it is shown only once and cannot be retrieved again**
+
+<Warning>
+  Store your API key securely (e.g. as an environment variable or in a secrets manager). Never commit it to source control or expose it in client-side code.
+</Warning>
+
+## Using your API key
+
+Include the key in the `Authorization` header of every request:
+
+```
+Authorization: Token token=ei_live_...
+```
+
+### Example request
+
+```bash
+curl https://api.classquill.com/v1/ping \
+  -H "Authorization: Token token=ei_live_your_key_here"
+```
+
+### Example response
+
+```json
+{
+  "status": "ok",
+  "org_id": "ce374c65-...",
+  "org_name": "Smiths Tutoring"
+}
+```
+
+## Key format
+
+All ClassQuill API keys start with `ei_live_` followed by 64 hex characters:
+
+```
+ei_live_5961c2b7cf00623bc536b6f520fc915771de86c6517b825f406fd3a184d9a7f5
+```
+
+## Key security
+
+- Keys are stored as SHA-256 hashes — even ClassQuill cannot retrieve the raw key after creation
+- Keys are scoped to your organisation — they cannot access another org's data
+- If a key is compromised, revoke it immediately in Settings → Integrations → API Keys
+
+## Key rotation
+
+To rotate a key without downtime:
+
+1. Create a new key in settings
+2. Update your integration to use the new key
+3. Verify the integration is working with the new key
+4. Revoke the old key
+
+## Expiry
+
+Keys can optionally have an expiry date. Requests made after the expiry date return:
+
+```json
+{
+  "code": 401,
+  "message": "API key has expired. Create a new key in your org settings.",
+  "data": {}
+}
+```
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| `401` | Missing, invalid, revoked, or expired API key |
+| `403` | Valid key but insufficient permissions for this endpoint |
+| `429` | Rate limit exceeded — slow down your requests |

@@ -1,0 +1,55 @@
+---
+title: "Introduction"
+description: "The ClassQuill API gives you programmatic access to your tutoring organisation's data — sessions, invoices, payments, tutor earnings, and more."
+---
+
+## What is the ClassQuill API?
+
+The ClassQuill API is a REST API that lets your organisation pull data out of ClassQuill and into the tools you already use — accounting software, payroll systems, custom dashboards, or anything that can make an HTTP request.
+
+Every endpoint returns JSON and uses standard HTTP status codes.
+
+## What can you build with it?
+
+<CardGroup cols={2}>
+  <Card title="Accounting integration" icon="file-invoice-dollar">
+    Push sessions and invoices directly into Xero, MYOB, or QuickBooks. Automate the reconciliation process your admin team does manually today.
+  </Card>
+  <Card title="Tutor payroll" icon="money-bill-wave">
+    Pull each tutor's completed sessions for the pay period, calculate what they're owed, and export to your payroll tool.
+  </Card>
+  <Card title="Parent billing" icon="family">
+    See each family's balance — what they've been invoiced, what they've paid, and what's outstanding — without logging into ClassQuill.
+  </Card>
+  <Card title="Custom reporting" icon="chart-bar">
+    Build your own dashboards on top of your real session and payment data.
+  </Card>
+</CardGroup>
+
+## Base URL
+
+All API requests are made to:
+
+```
+https://api.classquill.com
+```
+
+## Versioning
+
+The current version is **v1**. All v1 endpoints are prefixed with `/v1/`:
+
+```
+https://api.classquill.com/v1/sessions
+https://api.classquill.com/v1/invoices
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Get your API key and learn how to include it in requests.
+  </Card>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Make your first API call in under 5 minutes.
+  </Card>
+</CardGroup>

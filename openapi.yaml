@@ -1,0 +1,729 @@
+openapi: 3.0.3
+info:
+  title: ClassQuill API
+  version: 1.0.0
+  description: The ClassQuill public REST API — manage tutors, students, sessions, and more.
+
+servers:
+  - url: https://api.classquill.com
+    description: Production
+  - url: http://localhost:8000
+    description: Local development
+    description: Staging (placeholder)
+  - url: https://api.pascalis.app
+    description: Production (placeholder)
+
+# ────────────────────────────────────────────────────────────────────────────
+# Reusable components
+# ────────────────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT access token
+
+  schemas:
+    # ── Error payloads ──────────────────────────────────────────────────────
+    RateLimitError:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+          example: "Rate limit exceeded. Try again in 30s."
+
+    CostCapError:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: object
+          required: [error, message, monthly_cost, monthly_cost_cap]
+          properties:
+            error:
+              type: string
+              enum: [cost_cap_exceeded]
+            message:
+              type: string
+              example: "Monthly usage cap exceeded."
+            monthly_cost:
+              type: string
+              example: "10.00"
+            monthly_cost_cap:
+              type: string
+              example: "10.00"
+
+    ValidationError:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: object
+                properties:
+                  loc:
+                    type: array
+                    items:
+                      oneOf:
+                        - type: string
+                        - type: integer
+                  msg:
+                    type: string
+                  type:
+                    type: string
+
+    InternalError:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+          example: "Internal error: <message>"
+
+    # ── Health ──────────────────────────────────────────────────────────────
+    HealthResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          example: true
+
+    # ── Chat ────────────────────────────────────────────────────────────────
+    BatchAnswerItem:
+      type: object
+      required: [answer]
+      properties:
+        question:
+          type: string
+          nullable: true
+        answer:
+          type: string
+        error:
+          type: boolean
+          default: false
+
+    ChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          nullable: true
+        intent:
+          type: string
+          nullable: true
+        answers:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/BatchAnswerItem"
+        conversation_id:
+          type: string
+          nullable: true
+        question_id:
+          type: string
+          nullable: true
+        is_question:
+          type: boolean
+          default: false
+        video_url:
+          type: string
+          nullable: true
+
+    # ── Marking ─────────────────────────────────────────────────────────────
+    MarkingResponse:
+      type: object
+      properties:
+        confidence:
+          type: number
+          format: float
+          default: 0.0
+        latex:
+          type: string
+          default: ""
+        feedback:
+          type: string
+          default: ""
+        score:
+          type: string
+          default: ""
+        is_correct:
+          type: boolean
+          default: false
+
+    # ── Marking Schemes ─────────────────────────────────────────────────────
+    PartGenerateResponse:
+      type: object
+      properties:
+        part_id:
+          type: string
+        marking_scheme:
+          type: string
+          nullable: true
+        updated:
+          type: boolean
+        skipped:
+          type: boolean
+        skip_reason:
+          type: string
+          nullable: true
+
+    QuestionGenerateResponse:
+      type: object
+      properties:
+        question_id:
+          type: string
+        parts_processed:
+          type: integer
+        parts_updated:
+          type: integer
+        parts_skipped:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartGenerateResponse"
+
+    ExamGenerateResponse:
+      type: object
+      properties:
+        vce_exam_id:
+          type: string
+        parts_processed:
+          type: integer
+        parts_updated:
+          type: integer
+        parts_skipped:
+          type: integer
+
+    # ── Regeneration ────────────────────────────────────────────────────────
+    AIRewriteResponse:
+      type: object
+      properties:
+        part_id:
+          type: string
+        fields_updated:
+          type: integer
+        before:
+          type: object
+        after:
+          type: object
+
+    QuestionProcessResponse:
+      type: object
+      properties:
+        question_id:
+          type: string
+        parts_processed:
+          type: integer
+        parts_updated:
+          type: integer
+
+  # ── Reusable response references ────────────────────────────────────────
+  responses:
+    RateLimited:
+      description: |
+        Rate limit exceeded.  Per-user and per-IP sliding-window limits
+        are enforced on all metered routes.  Retry after the window elapses.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RateLimitError"
+
+    CostCapExceeded:
+      description: |
+        Monthly cost cap exceeded.  The user's accumulated estimated spend
+        for the current calendar month has reached the cap.  No further
+        paid API work is performed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CostCapError"
+
+    Unauthorized:
+      description: Missing or invalid bearer token.
+
+    UnprocessableEntity:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+
+    InternalServerError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InternalError"
+
+  headers:
+    X-Usage-Cap-Exceeded:
+      description: |
+        Present (value `"true"`) when the post-request usage record
+        indicates the user has now exceeded their monthly cost cap.
+        The current request still succeeds, but subsequent requests
+        will be rejected with 402.
+      schema:
+        type: string
+        enum: ["true"]
+
+# ────────────────────────────────────────────────────────────────────────────
+# Paths
+# ────────────────────────────────────────────────────────────────────────────
+paths:
+  # ── Health ──────────────────────────────────────────────────────────────
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check endpoint
+      description: Returns health status of the API
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  # ── Chat ────────────────────────────────────────────────────────────────
+  /api/chat:
+    post:
+      operationId: postChat
+      summary: Main conversation endpoint
+      description: |
+        Accepts a user message (with optional file upload for OCR),
+        routes through intent classification, executes the matching
+        workflow, and returns the result.
+
+        **Rate limit:** 10 req/min per user, 20 req/min per IP.
+        **Cost cap:** Pre-checked before any paid work; post-recorded
+        after completion.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  maxLength: 10000
+                subject:
+                  type: string
+                  default: methods_34
+                  enum:
+                    - methods_12
+                    - methods_34
+                    - further_12
+                    - further_34
+                    - specialist_12
+                    - specialist_34
+                conversation_id:
+                  type: string
+                  nullable: true
+                file:
+                  type: string
+                  format: binary
+                  nullable: true
+                generate_video:
+                  type: boolean
+                  default: false
+                question_id:
+                  type: string
+                  nullable: true
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  maxLength: 10000
+                subject:
+                  type: string
+                  default: methods_34
+                conversation_id:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Chat completed successfully.
+          headers:
+            X-Usage-Cap-Exceeded:
+              $ref: "#/components/headers/X-Usage-Cap-Exceeded"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/CostCapExceeded"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ── Graph Generation ────────────────────────────────────────────────────
+  /api/generate-graph:
+    post:
+      operationId: postGenerateGraph
+      summary: Plot generation
+      description: |
+        Generates a mathematical graph/plot and uploads the image to
+        Supabase Storage.
+
+        **Rate limit:** 5 req/min per user, 10 req/min per IP.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [conversation_id]
+              properties:
+                conversation_id:
+                  type: string
+                message_source:
+                  type: string
+                  default: last_question
+      responses:
+        "200":
+          description: Graph generated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ── Answer Marking ──────────────────────────────────────────────────────
+  /api/mark-answer:
+    post:
+      operationId: postMarkAnswer
+      summary: Answer grading
+      description: |
+        Grades a student answer against a question.  Supports typed text,
+        whiteboard strokes, or an uploaded image.
+
+        **Rate limit:** 10 req/min per user, 20 req/min per IP.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question_id, attempt_id]
+              properties:
+                question_id:
+                  type: string
+                  description: UUID of the question
+                attempt_id:
+                  type: string
+                  description: UUID of the exam attempt
+                text_answer:
+                  type: string
+                  nullable: true
+                strokes_data:
+                  type: object
+                  nullable: true
+                image_url:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Marking completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarkingResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ── Video Generation ────────────────────────────────────────────────────
+  /api/generate-video:
+    post:
+      operationId: postGenerateVideo
+      summary: Educational video generation
+      description: |
+        Generates an educational video via the Kodisc API.
+
+        **Rate limit:** 3 req/min per user, 5 req/min per IP.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [conversation_id]
+              properties:
+                conversation_id:
+                  type: string
+                message_source:
+                  type: string
+                  default: last_question
+                question_id:
+                  type: string
+                  nullable: true
+                question:
+                  type: string
+                  nullable: true
+                answer:
+                  type: string
+                  nullable: true
+                solution:
+                  type: string
+                  nullable: true
+                context:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Video generation initiated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ── Marking Schemes: single part ────────────────────────────────────────
+  /api/marking-schemes/generate/{part_id}:
+    post:
+      operationId: postGenerateMarkingSchemePart
+      summary: Generate marking scheme for a single part
+      description: |
+        Uses an LLM to generate a marking scheme for one question part.
+
+        **Rate limit:** 20 req/min per user, 30 req/min per IP.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: part_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Marking scheme generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartGenerateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ── Marking Schemes: question ───────────────────────────────────────────
+  /api/marking-schemes/generate-for-question/{question_id}:
+    post:
+      operationId: postGenerateMarkingSchemeQuestion
+      summary: Generate marking schemes for all parts of a question
+      description: |
+        Iterates over every part of the given question and generates
+        a marking scheme for each.
+
+        **Rate limit:** 10 req/min per user, 15 req/min per IP.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Marking schemes generated for question.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionGenerateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ── Marking Schemes: exam ───────────────────────────────────────────────
+  /api/marking-schemes/generate-for-exam/{vce_exam_id}:
+    post:
+      operationId: postGenerateMarkingSchemeExam
+      summary: Generate marking schemes for an entire VCE exam
+      description: |
+        Fan-out: generates marking schemes for every part of every
+        question in the exam.
+
+        **Rate limit:** 2 req/min per user, 3 req/min per IP.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: vce_exam_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Marking schemes generated for exam.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExamGenerateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ── Regeneration: AI rewrite single part ────────────────────────────────
+  /api/regeneration/ai-rewrite/{part_id}:
+    post:
+      operationId: postAIRewritePart
+      summary: AI rewrite for a single question part
+      description: |
+        Uses an LLM to rewrite corrupted or poorly formatted text
+        in the specified fields of a question part.
+
+        **Rate limit:** 20 req/min per user, 30 req/min per IP.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: part_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fields:
+                  type: array
+                  items:
+                    type: string
+                  default: ["content", "answer", "solution"]
+      responses:
+        "200":
+          description: AI rewrite completed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIRewriteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ── Regeneration: AI rewrite for question ───────────────────────────────
+  /api/regeneration/ai-rewrite-for-question/{question_id}:
+    post:
+      operationId: postAIRewriteQuestion
+      summary: AI rewrite for all parts of a question
+      description: |
+        Iterates over every part of the given question and applies
+        AI rewriting to each.
+
+        **Rate limit:** 10 req/min per user, 15 req/min per IP.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: question_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fields:
+                  type: array
+                  items:
+                    type: string
+                  default: ["content", "answer", "solution"]
+      responses:
+        "200":
+          description: AI rewrite completed for question.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionProcessResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
